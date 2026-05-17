@@ -1,5 +1,5 @@
 import { useCallback, useState } from 'react'
-import { useDropzone } from 'react-dropzone'
+import { useDropzone, type FileRejection } from 'react-dropzone'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '@/lib/supabase'
 import { useAuthStore } from '@/stores/authStore'
@@ -18,7 +18,7 @@ export default function UploadPage() {
   const [errorMsg, setErrorMsg] = useState('')
   const [jobDescription, setJobDescription] = useState('')
 
-  const onDrop = useCallback((accepted: File[], rejected: File[]) => {
+  const onDrop = useCallback((accepted: File[], rejected: FileRejection[]) => {
     setErrorMsg('')
     if (rejected.length > 0) {
       const r = rejected[0]

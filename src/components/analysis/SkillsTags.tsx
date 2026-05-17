@@ -22,7 +22,7 @@ export function SkillsTags({ skills }: Props) {
             <span className="ml-auto text-xs text-[#4A5568]">{skills[key].length}</span>
           </div>
           <div className="flex flex-wrap gap-1.5">
-            {skills[key].map((skill) => (
+            {skills[key].map((skill: string) => (
               <span
                 key={skill}
                 className="text-xs px-2 py-1 rounded-md font-medium"

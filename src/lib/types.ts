@@ -69,31 +69,31 @@ export interface CertificationBlock {
   date: string
 }
 
+export interface ScoreBreakdown {
+  formatting: number
+  keywords: number
+  experience: number
+  skills_match: number
+}
+
+export interface SkillsDetected {
+  technical: string[]
+  soft: string[]
+  tools: string[]
+}
+
 export interface AnalysisResult {
   id: string
   resume_id: string
   user_id: string
   ats_score: number
-  score_breakdown: {
-    formatting: number
-    keywords: number
-    experience: number
-    skills_match: number
-  }
+  score_breakdown: ScoreBreakdown
   overall_verdict: string
   summary: string
   strengths: string[]
   missing_keywords: string[]
-  improvement_suggestions: Array<{
-    priority: 'High' | 'Medium' | 'Low'
-    category: string
-    suggestion: string
-  }>
-  skills_detected: {
-    technical: string[]
-    soft: string[]
-    tools: string[]
-  }
+  improvement_suggestions: ImprovementSuggestion[]
+  skills_detected: SkillsDetected
   recommended_roles: Array<{
     title: string
     match_percentage: number
@@ -105,4 +105,45 @@ export interface AnalysisResult {
   word_count: number
   estimated_years_experience: number
   analyzed_at: string
+}
+
+
+export interface ImprovementSuggestion {
+  priority: 'High' | 'Medium' | 'Low'
+  category: string
+  suggestion: string
+}
+
+export interface Notification {
+  id: string
+  user_id: string
+  message: string
+  is_read: boolean
+  created_at: string
+}
+
+export interface SavedJob {
+  id: string
+  user_id: string
+  job_title: string
+  company: string
+  job_url: string
+  location?: string
+  salary?: string
+  saved_at: string
+}
+
+export interface RemotiveJob {
+  id: number
+  url: string
+  title: string
+  company_name: string
+  company_logo?: string
+  category: string
+  tags: string[]
+  job_type: string
+  publication_date: string
+  candidate_required_location: string
+  salary?: string
+  description: string
 }

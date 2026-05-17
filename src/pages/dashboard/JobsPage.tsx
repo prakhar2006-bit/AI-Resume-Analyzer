@@ -141,13 +141,13 @@ export default function JobsPage() {
       </div>
 
       {/* Recommended from AI */}
-      {analysis?.recommended_roles?.length > 0 && (
+      {(analysis?.recommended_roles?.length ?? 0) > 0 && (
         <div className="card">
           <h2 className="text-sm font-semibold text-[#F1F5F9] mb-4 flex items-center gap-2">
             <Briefcase style={{ width: 15, height: 15, color: '#6366F1' }} /> AI Recommended Roles
           </h2>
           <div className="flex flex-wrap gap-2">
-            {analysis.recommended_roles.map((r, i) => (
+            {analysis?.recommended_roles?.map((r, i) => (
               <button
                 key={i}
                 onClick={() => { setSearch(r.title); fetchJobs(r.title) }}
