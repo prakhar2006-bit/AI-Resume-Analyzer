@@ -42,3 +42,12 @@ build/
 # OS files
 .DS_Store
 Thumbs.db
+
+# TypeScript build info
+*.tsbuildinfo
+
+# Auto-generated config declaration/compiled files
+tailwind.config.d.ts
+tailwind.config.js
+vite.config.d.ts
+vite.config.js
