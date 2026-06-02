@@ -1,53 +1,41 @@
-import { createRequire } from 'module'
-const require = createRequire(import.meta.url)
-const pdfParse = require('pdf-parse')
-import express from 'express'
-import cors from 'cors'
-import multer from 'multer'
-import Anthropic from '@anthropic-ai/sdk'
-import dotenv from 'dotenv'
+import type { VercelRequest, VercelResponse } from '@vercel/node'
+import multiparty from 'multiparty'
 import { createClient } from '@supabase/supabase-js'
+import Anthropic from '@anthropic-ai/sdk'
+import fs from 'fs'
 
-dotenv.config()
-
-const app = express()
-
-// ─── Middleware ────────────────────────────────────────────────────────────────
-app.use(cors({ origin: process.env.VITE_APP_URL || 'http://localhost:5173', credentials: true }))
-app.use(express.json())
-
-app.set('trust proxy', 1)
-
-// Rate limiter removed for local development stability
-const analysisLimiter = (req: any, res: any, next: any) => next()
-
-// Multer for PDF uploads (in-memory)
-const upload = multer({
-  storage: multer.memoryStorage(),
-  limits: { fileSize: 5 * 1024 * 1024 },
-  fileFilter: (_req, file, cb) => {
-    if (file.mimetype !== 'application/pdf') {
-      cb(new Error('Only PDF files are accepted'))
-    } else {
-      cb(null, true)
-    }
-  },
-})
-
-// ─── Clients ────────────────────────────────────────────────────────────────────
+// ─── Clients ─────────────────────────────────────────────────────────────────
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY || '' })
 
-// Use Service Role Key for the server to bypass RLS during analysis saving
 const supabase = createClient(
   process.env.VITE_SUPABASE_URL || '',
   process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.VITE_SUPABASE_ANON_KEY || ''
 )
 
-// ─── PDF text extraction ───────────────────────────────────────────────────────
-async function extractPdfText(buffer: Buffer): Promise<string> {
+// ─── Parse multipart form using multiparty ────────────────────────────────────
+function parseForm(req: VercelRequest): Promise<{ fields: Record<string, string[]>; filePath: string; mimeType: string }> {
+  return new Promise((resolve, reject) => {
+    const form = new multiparty.Form()
+    form.parse(req as any, (err, fields, files) => {
+      if (err) return reject(err)
+      const uploaded = files?.pdf?.[0]
+      if (!uploaded) return reject(new Error('No PDF file uploaded'))
+      resolve({
+        fields,
+        filePath: uploaded.path,
+        mimeType: uploaded.headers['content-type'] || 'application/pdf',
+      })
+    })
+  })
+}
+
+// ─── PDF text extraction ──────────────────────────────────────────────────────
+async function extractPdfText(filePath: string): Promise<string> {
   try {
-    const result = await pdfParse(buffer)
-    // Sanitize: strip potential HTML/script tags
+    // Dynamically require pdf-parse (CJS module)
+    const pdfParse = (await import('pdf-parse')).default || (await import('pdf-parse'))
+    const buffer = fs.readFileSync(filePath)
+    const result = await (pdfParse as any)(buffer)
     return result.text
       .replace(/<[^>]*>/g, '')
       .replace(/&[a-z]+;/gi, ' ')
@@ -58,50 +46,49 @@ async function extractPdfText(buffer: Buffer): Promise<string> {
   }
 }
 
+// ─── Mock analysis ────────────────────────────────────────────────────────────
+function getMockAnalysis() {
+  return {
+    ats_score: 82,
+    score_breakdown: { formatting: 22, keywords: 18, experience: 21, skills_match: 21 },
+    overall_verdict: 'Good',
+    summary:
+      'The resume demonstrates strong technical proficiency and clear professional progression. While well-formatted, it could benefit from more specific industry keywords to rank higher in specialized ATS filters.',
+    strengths: [
+      'Consistent and professional formatting',
+      'Strong progression in technical responsibilities',
+      'Clear quantifiable achievements in recent roles',
+    ],
+    missing_keywords: ['TypeScript', 'CI/CD', 'AWS Lambda', 'Unit Testing'],
+    improvement_suggestions: [
+      { priority: 'High', category: 'Keywords', suggestion: 'Integrate specific mentions of TypeScript and AWS architecture to match modern stack expectations.' },
+      { priority: 'Medium', category: 'Experience', suggestion: "Add more metrics to your bullet points (e.g., 'increased performance by X%')." },
+      { priority: 'Low', category: 'Formatting', suggestion: 'Ensure the font size is consistent across all sections.' },
+    ],
+    skills_detected: {
+      technical: ['React', 'JavaScript', 'Node.js', 'Express', 'PostgreSQL'],
+      soft: ['Team Leadership', 'Agile Management', 'Communication'],
+      tools: ['Git', 'Docker', 'Jira', 'VS Code'],
+    },
+    experience_level: 'Mid Level',
+    recommended_roles: [
+      { title: 'Senior Frontend Developer', match_percentage: 92, reason: 'Strong background in React and UI architecture.' },
+      { title: 'Full Stack Engineer', match_percentage: 85, reason: 'Demonstrated capability in both frontend and backend environments.' },
+    ],
+    industry_fit: ['Tech', 'SaaS', 'E-commerce'],
+    red_flags: ['Slightly high word count for a 2-page resume'],
+    word_count: 650,
+    estimated_years_experience: 5,
+  }
+}
+
+// ─── Claude AI analysis ───────────────────────────────────────────────────────
 async function analyzeWithClaude(resumeText: string, jobDescription?: string): Promise<Record<string, unknown>> {
   const apiKey = process.env.ANTHROPIC_API_KEY
-
-  // 🧪 MOCK MODE: Return simulated analysis if no real key is found
   if (!apiKey || apiKey === 'your_anthropic_api_key' || apiKey === 'mock') {
-    console.log('🧪 Running in MOCK MODE (Simulating AI Analysis)')
-    await new Promise((resolve) => setTimeout(resolve, 2000)) // Artificial delay
-
-    return {
-      ats_score: 82,
-      score_breakdown: {
-        formatting: 22,
-        keywords: 18,
-        experience: 21,
-        skills_match: 21,
-      },
-      overall_verdict: "Good",
-      summary: "The resume demonstrates strong technical proficiency and clear professional progression. While well-formatted, it could benefit from more specific industry keywords to rank higher in specialized ATS filters.",
-      strengths: [
-        "Consistent and professional formatting",
-        "Strong progression in technical responsibilities",
-        "Clear quantifiable achievements in recent roles"
-      ],
-      missing_keywords: ["TypeScript", "CI/CD", "AWS Lambda", "Unit Testing"],
-      improvement_suggestions: [
-        { "priority": "High", "category": "Keywords", "suggestion": "Integrate specific mentions of TypeScript and AWS architecture to match modern stack expectations." },
-        { "priority": "Medium", "category": "Experience", "suggestion": "Add more metrics to your bullet points (e.g., 'increased performance by X%')." },
-        { "priority": "Low", "category": "Formatting", "suggestion": "Ensure the font size is consistent across all sections." }
-      ],
-      skills_detected: {
-        "technical": ["React", "JavaScript", "Node.js", "Express", "PostgreSQL"],
-        "soft": ["Team Leadership", "Agile Management", "Communication"],
-        "tools": ["Git", "Docker", "Jira", "VS Code"]
-      },
-      experience_level: "Mid Level",
-      recommended_roles: [
-        { "title": "Senior Frontend Developer", "match_percentage": 92, "reason": "Strong background in React and UI architecture." },
-        { "title": "Full Stack Engineer", "match_percentage": 85, "reason": "Demonstrated capability in both frontend and backend environments." }
-      ],
-      industry_fit: ["Tech", "SaaS", "E-commerce"],
-      red_flags: ["Slightly high word count for a 2-page resume"],
-      word_count: 650,
-      estimated_years_experience: 5
-    }
+    console.log('🧪 Running in MOCK MODE')
+    await new Promise((r) => setTimeout(r, 1000))
+    return getMockAnalysis()
   }
 
   const prompt = `You are an expert ATS (Applicant Tracking System) analyst and career coach with 15+ years of experience in HR and recruitment across tech, finance, and consulting industries.
@@ -153,7 +140,6 @@ Return ONLY valid JSON (no markdown, no explanation) with this exact structure:
   const content = message.content[0]
   if (content.type !== 'text') throw new Error('Unexpected response from Claude')
 
-  // Parse JSON — Claude should return clean JSON
   const text = content.text.trim()
   const jsonMatch = text.match(/\{[\s\S]*\}/)
   if (!jsonMatch) throw new Error('Could not parse AI response as JSON')
@@ -161,57 +147,112 @@ Return ONLY valid JSON (no markdown, no explanation) with this exact structure:
   return JSON.parse(jsonMatch[0]) as Record<string, unknown>
 }
 
-// ─── Route: POST /api/analyze-resume ──────────────────────────────────────────
-app.post(
-  '/api/analyze-resume',
-  upload.single('pdf'),
-  analysisLimiter,
-  async (req, res) => {
+// ─── Main handler ─────────────────────────────────────────────────────────────
+export default async function handler(req: VercelRequest, res: VercelResponse) {
+  // CORS headers
+  res.setHeader('Access-Control-Allow-Origin', '*')
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type')
+
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end()
+  }
+
+  const url = req.url || ''
+
+  // ─── GET /api/health ───────────────────────────────────────────────────────
+  if (req.method === 'GET' && url.includes('/api/health')) {
+    return res.json({
+      status: 'ok',
+      anthropicConfigured: !!process.env.ANTHROPIC_API_KEY && process.env.ANTHROPIC_API_KEY !== 'your_anthropic_api_key',
+      supabaseConfigured: !!process.env.VITE_SUPABASE_URL,
+      serviceRoleConfigured: !!process.env.SUPABASE_SERVICE_ROLE_KEY,
+    })
+  }
+
+  // ─── POST /api/editor/tips ─────────────────────────────────────────────────
+  if (req.method === 'POST' && url.includes('/api/editor/tips')) {
     try {
-      const { resume_id, user_id, job_description } = req.body as {
-        resume_id: string
-        user_id: string
-        job_description?: string
-      }
+      const { section, content } = req.body as { section: string; content: string }
+      if (!content || content.length < 10) return res.json({ tips: [] })
 
-      if (!req.file) {
-        res.status(400).json({ error: 'No PDF file uploaded' })
-        return
-      }
-      if (!resume_id || !user_id) {
-        res.status(400).json({ error: 'Missing resume_id or user_id' })
-        return
-      }
-
-      // Check API key (Allowing mock mode if key is missing or set to placeholder)
       const apiKey = process.env.ANTHROPIC_API_KEY
-      const isMockMode = !apiKey || apiKey === 'your_anthropic_api_key' || apiKey === 'mock'
+      if (!apiKey || apiKey === 'mock' || apiKey === 'your_anthropic_api_key') {
+        await new Promise((r) => setTimeout(r, 800))
+        return res.json({
+          tips: [
+            'Try to use more action verbs like "Spearheaded" or "Implemented".',
+            'Quantify your achievements with numbers (e.g., "Increased sales by 20%").',
+          ],
+        })
+      }
 
-      if (isMockMode) {
-        console.warn('⚠️  Proceeding with MOCK analysis (No real API key detected)')
+      const prompt = `You are a professional resume reviewer. Provide 2-3 short, actionable tips to improve the following "${section}" section of a resume for ATS optimization.
+    
+CONTENT:
+${content}
+
+Return ONLY a JSON array of strings: ["tip1", "tip2"]`
+
+      const message = await anthropic.messages.create({
+        model: 'claude-3-5-sonnet-20241022',
+        max_tokens: 500,
+        messages: [{ role: 'user', content: prompt }],
+      })
+
+      const text = ((message.content[0] as any).text as string).trim()
+      const jsonMatch = text.match(/\[[\s\S]*\]/)
+      const tips = jsonMatch ? JSON.parse(jsonMatch[0]) : []
+      return res.json({ tips })
+    } catch (err) {
+      console.error('Tips error:', err)
+      return res.status(500).json({ error: 'Failed to fetch tips' })
+    }
+  }
+
+  // ─── POST /api/analyze-resume ──────────────────────────────────────────────
+  if (req.method === 'POST' && url.includes('/api/analyze-resume')) {
+    let filePath: string | undefined
+    try {
+      // Parse multipart form
+      const { fields, filePath: fp, mimeType } = await parseForm(req)
+      filePath = fp
+
+      if (mimeType !== 'application/pdf') {
+        return res.status(400).json({ error: 'Only PDF files are accepted' })
+      }
+
+      const resume_id = fields.resume_id?.[0]
+      const user_id = fields.user_id?.[0]
+      const job_description = fields.job_description?.[0]
+
+      if (!resume_id || !user_id) {
+        return res.status(400).json({ error: 'Missing resume_id or user_id' })
       }
 
       // 1. Extract text
       let resumeText = ''
-      try {
-        resumeText = await extractPdfText(req.file.buffer)
-      } catch (err) {
-        console.warn('⚠️ Text extraction failed, but proceeding because of Mock Mode.')
-      }
+      const isMock =
+        !process.env.ANTHROPIC_API_KEY ||
+        process.env.ANTHROPIC_API_KEY === 'your_anthropic_api_key' ||
+        process.env.ANTHROPIC_API_KEY === 'mock'
 
-      const isMock = !process.env.ANTHROPIC_API_KEY || process.env.ANTHROPIC_API_KEY === 'your_anthropic_api_key' || process.env.ANTHROPIC_API_KEY === 'mock'
+      try {
+        resumeText = await extractPdfText(filePath)
+      } catch (err) {
+        if (!isMock) throw err
+        console.warn('⚠️ PDF extraction failed, using mock placeholder')
+      }
 
       if (!isMock && (!resumeText || resumeText.length < 50)) {
-        res.status(400).json({ error: 'Could not extract enough text from the PDF. Please ensure it is a text-based PDF, not a scanned image.' })
-        return
+        return res.status(400).json({ error: 'Could not extract enough text from the PDF. Please ensure it is a text-based PDF, not a scanned image.' })
       }
 
-      // Fallback for mock mode if text is empty
       if (isMock && (!resumeText || resumeText.length < 50)) {
-        resumeText = "[MOCK RESUME TEXT: Original PDF was image-based or unreadable]"
+        resumeText = '[MOCK RESUME TEXT: Original PDF was image-based or unreadable]'
       }
 
-      // 2. Analyze
+      // 2. Analyze with Claude
       const analysis = await analyzeWithClaude(resumeText, job_description)
 
       // 3. Save to DB
@@ -244,7 +285,7 @@ app.post(
       // 4. Update resume status
       await supabase.from('resumes').update({ status: 'complete' }).eq('id', resume_id)
 
-      // 5. Create notification
+      // 5. Notification
       await supabase.from('notifications').insert({
         user_id,
         type: 'analysis_complete',
@@ -252,70 +293,21 @@ app.post(
         is_read: false,
       })
 
-      res.json({ analysis_id: (analysisRow as { id: string }).id, ats_score: analysis.ats_score })
+      return res.json({ analysis_id: (analysisRow as { id: string }).id, ats_score: analysis.ats_score })
     } catch (err: unknown) {
       console.error('Analysis error:', err)
       const msg = err instanceof Error ? err.message : 'Analysis failed'
-      res.status(500).json({ error: msg })
+      return res.status(500).json({ error: msg })
+    } finally {
+      // Clean up temp file
+      if (filePath) {
+        try { fs.unlinkSync(filePath) } catch {}
+      }
     }
   }
-)
 
-// ─── Route: POST /api/editor/tips ───────────────────────────────────────────
-app.post('/api/editor/tips', async (req, res) => {
-  try {
-    const { section, content } = req.body as { section: string, content: string }
-    if (!content || content.length < 10) {
-      return res.json({ tips: [] })
-    }
-
-    const apiKey = process.env.ANTHROPIC_API_KEY
-    if (!apiKey || apiKey === 'mock' || apiKey === 'your_anthropic_api_key') {
-      // Mock tips
-      await new Promise(r => setTimeout(r, 800))
-      const mockTips = [
-        `Try to use more action verbs like "Spearheaded" or "Implemented".`,
-        `Quantify your achievements with numbers (e.g., "Increased sales by 20%").`,
-        `Ensure this section directly addresses keywords from the target industry.`
-      ]
-      return res.json({ tips: mockTips.slice(0, 2) })
-    }
-
-    const prompt = `You are a professional resume reviewer. Provide 2-3 short, actionable tips to improve the following "${section}" section of a resume for ATS optimization.
-    
-    CONTENT:
-    ${content}
-    
-    Return ONLY a JSON array of strings: ["tip1", "tip2"]`
-
-    const message = await anthropic.messages.create({
-      model: 'claude-3-5-sonnet-20241022',
-      max_tokens: 500,
-      messages: [{ role: 'user', content: prompt }],
-    })
-
-    const text = (message.content[0] as any).text.trim()
-    const jsonMatch = text.match(/\[[\s\S]*\]/)
-    const tips = jsonMatch ? JSON.parse(jsonMatch[0]) : []
-
-    res.json({ tips })
-  } catch (err) {
-    console.error('Tips error:', err)
-    res.status(500).json({ error: 'Failed to fetch tips' })
-  }
-})
-
-// ─── Route: GET /api/health ──────────────────────────────────────────────────
-app.get('/api/health', (_req, res) => {
-  res.json({
-    status: 'ok',
-    anthropicConfigured: !!process.env.ANTHROPIC_API_KEY && process.env.ANTHROPIC_API_KEY !== 'your_anthropic_api_key',
-    supabaseConfigured: !!process.env.VITE_SUPABASE_URL && process.env.VITE_SUPABASE_URL !== 'your_supabase_project_url',
-    serviceRoleConfigured: !!process.env.SUPABASE_SERVICE_ROLE_KEY
-  })
-})
-
-export default app
+  return res.status(404).json({ error: 'Not found' })
+}
 
 export const config = {
   api: {
