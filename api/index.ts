@@ -1,7 +1,6 @@
 import { createRequire } from 'module'
 const require = createRequire(import.meta.url)
 const pdfParse = require('pdf-parse')
-
 import express from 'express'
 import cors from 'cors'
 import multer from 'multer'
@@ -317,3 +316,9 @@ app.get('/api/health', (_req, res) => {
 })
 
 export default app
+
+export const config = {
+  api: {
+    bodyParser: false,
+  },
+}
