@@ -248,3 +248,19 @@ h1, h2, h3, h4, h5, h6 {
 
 /* ─── Page transition wrapper ───────────────────── */
 .page-enter { animation: fade-in 0.3s ease-out; }
+
+/* ─── Mobile slide-in ───────────────────────────── */
+@keyframes slide-in-left {
+  from { transform: translateX(-100%); }
+  to   { transform: translateX(0); }
+}
+.animate-slide-in-left { animation: slide-in-left 0.25s ease-out; }
+
+/* ─── Mobile responsive helpers ─────────────────── */
+@media (max-width: 767px) {
+  .card { padding: 1rem; }
+  .card:hover { transform: none; } /* Disable hover lift on touch devices */
+
+  /* Make buttons more touch-friendly */
+  .btn { min-height: 44px; }
+}

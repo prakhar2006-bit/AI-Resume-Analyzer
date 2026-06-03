@@ -136,7 +136,7 @@ export default function JobsPage() {
   return (
     <div className="space-y-6 animate-fade-in">
       <div>
-        <h1 className="text-2xl font-heading font-bold text-[#F1F5F9]">Job Matches</h1>
+        <h1 className="text-xl sm:text-2xl font-heading font-bold text-[#F1F5F9]">Job Matches</h1>
         <p className="text-[#94A3B8] text-sm mt-1">Roles matched to your resume + live remote job search</p>
       </div>
 
@@ -162,7 +162,7 @@ export default function JobsPage() {
       )}
 
       {/* Search bar */}
-      <form onSubmit={handleSearch} className="flex gap-2">
+      <form onSubmit={handleSearch} className="flex flex-col sm:flex-row gap-2">
         <div className="flex-1 relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-[#4A5568]" style={{ width: 16, height: 16 }} />
           <input
@@ -180,7 +180,7 @@ export default function JobsPage() {
 
       {/* Filters */}
       {jobs.length > 0 && (
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           {(['all', 'full_time', 'part_time'] as const).map((f) => (
             <button
               key={f}
@@ -196,13 +196,13 @@ export default function JobsPage() {
 
       {/* Job grid */}
       {loadingJobs ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {[...Array(6)].map((_, i) => (
             <div key={i} className="skeleton h-44 rounded-xl" />
           ))}
         </div>
       ) : filteredJobs.length > 0 ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {filteredJobs.map((job) => (
             <JobCard key={job.id} job={job} saved={savedIds.has(job.url)} onSave={handleSave} />
           ))}

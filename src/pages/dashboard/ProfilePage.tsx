@@ -75,12 +75,12 @@ export default function ProfilePage() {
   return (
     <div className="max-w-2xl mx-auto space-y-6 animate-fade-in">
       <div>
-        <h1 className="text-2xl font-heading font-bold text-[#F1F5F9]">My Profile</h1>
+        <h1 className="text-xl sm:text-2xl font-heading font-bold text-[#F1F5F9]">My Profile</h1>
         <p className="text-[#94A3B8] text-sm mt-1">Personalize your account and preferences</p>
       </div>
 
       {/* Avatar */}
-      <div className="card flex items-center gap-6">
+      <div className="card flex flex-col sm:flex-row items-center gap-4 sm:gap-6">
         <div className="relative">
           <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-[#6366F1] to-[#22D3EE] flex items-center justify-center text-white text-2xl font-bold overflow-hidden">
             {avatarUrl
@@ -172,7 +172,7 @@ export default function ProfilePage() {
         <h2 className="text-sm font-semibold text-[#EF4444] mb-3 flex items-center gap-2">
           <AlertTriangle style={{ width: 15, height: 15 }} /> Danger Zone
         </h2>
-        <div className="flex items-center justify-between gap-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
             <p className="text-sm text-[#F1F5F9]">Delete Account</p>
             <p className="text-xs text-[#94A3B8]">Permanently delete your account and all data. This cannot be undone.</p>

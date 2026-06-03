@@ -42,7 +42,7 @@ export default function SavedJobsPage() {
   return (
     <div className="space-y-6 animate-fade-in">
       <div>
-        <h1 className="text-2xl font-heading font-bold text-[#F1F5F9]">Saved Jobs</h1>
+        <h1 className="text-xl sm:text-2xl font-heading font-bold text-[#F1F5F9]">Saved Jobs</h1>
         <p className="text-[#94A3B8] text-sm mt-1">{jobs.length} job{jobs.length !== 1 ? 's' : ''} saved</p>
       </div>
 
@@ -55,7 +55,7 @@ export default function SavedJobsPage() {
       ) : (
         <div className="space-y-3">
           {jobs.map((job) => (
-            <div key={job.id} className="card flex items-center gap-4">
+            <div key={job.id} className="card flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
               <div className="w-10 h-10 rounded-lg bg-[#6366F1]/15 flex items-center justify-center flex-shrink-0 text-[#6366F1] font-bold text-sm">
                 {job.company?.[0] || '?'}
               </div>
@@ -71,7 +71,7 @@ export default function SavedJobsPage() {
                   <span className="text-[#4A5568]">Saved {formatDate(job.saved_at)}</span>
                 </div>
               </div>
-              <div className="flex items-center gap-2 flex-shrink-0">
+              <div className="flex items-center gap-2 flex-shrink-0 flex-wrap">
                 <a
                   href={job.job_url}
                   target="_blank"

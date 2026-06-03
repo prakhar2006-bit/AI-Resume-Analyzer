@@ -1,12 +1,17 @@
 import { useState, useEffect, useRef } from 'react'
-import { Bell, Sun, Moon, X, CheckCheck } from 'lucide-react'
+import { Bell, Sun, Moon, X, CheckCheck, Menu } from 'lucide-react'
 import { useThemeStore } from '@/stores/themeStore'
 import { useAuthStore } from '@/stores/authStore'
 import { supabase } from '@/lib/supabase'
 import { generateAvatarInitials, formatRelativeTime } from '@/lib/utils'
 import type { Notification } from '@/lib/types'
 
-export function Topbar({ title }: { title?: string }) {
+interface TopbarProps {
+  title?: string
+  onMenuToggle?: () => void
+}
+
+export function Topbar({ title, onMenuToggle }: TopbarProps) {
   const { theme, toggleTheme } = useThemeStore()
   const { profile } = useAuthStore()
   const [notifications, setNotifications] = useState<Notification[]>([])
@@ -53,12 +58,24 @@ export function Topbar({ title }: { title?: string }) {
 
   return (
     <header
-      className="h-14 flex items-center justify-between px-6 border-b border-[#2A2A3A] sticky top-0 z-20"
+      className="h-14 flex items-center justify-between px-4 sm:px-6 border-b border-[#2A2A3A] sticky top-0 z-20"
       style={{ background: 'rgba(17,17,24,0.95)', backdropFilter: 'blur(12px)' }}
     >
-      <h2 className="text-base font-semibold text-[#F1F5F9]">{title || 'Dashboard'}</h2>
-
       <div className="flex items-center gap-3">
+        {/* Hamburger menu — visible only on mobile */}
+        {onMenuToggle && (
+          <button
+            onClick={onMenuToggle}
+            className="md:hidden w-9 h-9 rounded-lg flex items-center justify-center text-[#94A3B8] hover:text-[#F1F5F9] hover:bg-white/8 transition-all"
+            aria-label="Toggle menu"
+          >
+            <Menu style={{ width: 20, height: 20 }} />
+          </button>
+        )}
+        <h2 className="text-base font-semibold text-[#F1F5F9] truncate">{title || 'Dashboard'}</h2>
+      </div>
+
+      <div className="flex items-center gap-2 sm:gap-3">
         {/* Theme toggle */}
         <button
           onClick={toggleTheme}
@@ -85,7 +102,7 @@ export function Topbar({ title }: { title?: string }) {
 
           {showNotifs && (
             <div
-              className="absolute right-0 top-12 w-80 rounded-xl border border-[#2A2A3A] shadow-2xl z-50 overflow-hidden animate-fade-in"
+              className="absolute right-0 top-12 w-[calc(100vw-2rem)] sm:w-80 max-w-80 rounded-xl border border-[#2A2A3A] shadow-2xl z-50 overflow-hidden animate-fade-in"
               style={{ background: '#16161E' }}
             >
               <div className="flex items-center justify-between px-4 py-3 border-b border-[#2A2A3A]">

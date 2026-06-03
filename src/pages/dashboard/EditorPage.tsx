@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { supabase } from '@/lib/supabase'
 import { useAuthStore } from '@/stores/authStore'
-import { Loader2, Save, FileText, ChevronLeft, Layout, Sparkles, X, Plus, Trash2 } from 'lucide-react'
+import { Loader2, Save, FileText, ChevronLeft, Layout, Sparkles, X, Plus, Trash2, Eye, EyeOff } from 'lucide-react'
 import toast from 'react-hot-toast'
 
 import { AtsScoreBadge, SectionWordCount } from '@/components/dashboard/editor/EditorStats'
@@ -22,6 +22,7 @@ export default function EditorPage() {
   const [activeSection, setActiveSection] = useState('contact')
   const [showTemplates, setShowTemplates] = useState(false)
   const [newSkill, setNewSkill] = useState('')
+  const [showPreview, setShowPreview] = useState(false)
   
   const [data, setData] = useState<ResumeData>({
     contact: { name: '', email: '', phone: '', linkedin: '', github: '', location: '' },
@@ -120,13 +121,14 @@ export default function EditorPage() {
 
   return (
     <div className="flex flex-col h-[calc(100vh-120px)] animate-fade-in relative">
-      <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center gap-4">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4 sm:mb-6 gap-3">
+        <div className="flex items-center gap-3 sm:gap-4">
           <button onClick={() => navigate(-1)} className="p-2 hover:bg-[#16161E] rounded-lg transition-colors">
             <ChevronLeft className="w-5 h-5 text-[#94A3B8]" />
           </button>
           <div>
-            <h1 className="text-2xl font-heading font-bold text-[#F1F5F9]">AI Resume Builder</h1>
+            <h1 className="text-lg sm:text-2xl font-heading font-bold text-[#F1F5F9]">AI Resume Builder</h1>
             <div className="flex items-center gap-2 mt-1">
               <span className={`text-[10px] uppercase font-bold tracking-wider px-1.5 py-0.5 rounded ${
                 saving ? 'bg-amber-500/10 text-amber-500' : 'bg-emerald-500/10 text-emerald-500'
@@ -137,8 +139,10 @@ export default function EditorPage() {
           </div>
         </div>
         
-        <div className="flex items-center gap-6">
-          <AtsScoreBadge data={data} />
+        <div className="flex items-center gap-2 sm:gap-6 overflow-x-auto">
+          <div className="hidden sm:block">
+            <AtsScoreBadge data={data} />
+          </div>
           <div className="flex items-center gap-2 bg-[#16161E] border border-[#2A2A3A] rounded-lg p-1">
             <button 
               onClick={() => setShowTemplates(false)}
@@ -153,20 +157,30 @@ export default function EditorPage() {
               <Sparkles className="w-3.5 h-3.5" /> Templates
             </button>
           </div>
-          <button onClick={() => handleSave()} className="btn btn-primary flex items-center gap-2">
-            <Save className="w-4 h-4" /> Save Now
+          {/* Mobile preview toggle */}
+          <button
+            onClick={() => setShowPreview(!showPreview)}
+            className="lg:hidden btn btn-secondary text-xs gap-1.5"
+          >
+            {showPreview ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+            {showPreview ? 'Edit' : 'Preview'}
+          </button>
+          <button onClick={() => handleSave()} className="btn btn-primary flex items-center gap-2 text-sm">
+            <Save className="w-4 h-4" /> <span className="hidden sm:inline">Save Now</span><span className="sm:hidden">Save</span>
           </button>
         </div>
       </div>
 
-      <div className="flex flex-1 gap-6 min-h-0">
-        <div className="w-1/2 flex flex-col gap-6 overflow-y-auto pr-2 custom-scrollbar">
+      {/* Main content area */}
+      <div className="flex flex-1 gap-4 lg:gap-6 min-h-0">
+        {/* Editor panel — hidden on mobile when preview is shown */}
+        <div className={`${showPreview ? 'hidden' : 'flex'} lg:flex w-full lg:w-1/2 flex-col gap-4 sm:gap-6 overflow-y-auto pr-0 lg:pr-2 custom-scrollbar`}>
           <div className="flex items-center gap-2 overflow-x-auto pb-2 no-scrollbar">
             {sections.map((s) => (
               <button
                 key={s.id}
                 onClick={() => setActiveSection(s.id)}
-                className={`px-4 py-2 rounded-xl text-sm font-medium whitespace-nowrap transition-all ${
+                className={`px-3 sm:px-4 py-2 rounded-xl text-sm font-medium whitespace-nowrap transition-all ${
                   activeSection === s.id 
                     ? 'bg-[#6366F1] text-white shadow-lg shadow-[#6366F1]/20' 
                     : 'bg-[#16161E] text-[#94A3B8] border border-[#2A2A3A] hover:border-[#6366F1]/50'
@@ -177,10 +191,10 @@ export default function EditorPage() {
             ))}
           </div>
 
-          <div className="card space-y-6">
+          <div className="card space-y-4 sm:space-y-6">
             {activeSection === 'contact' && (
               <div className="space-y-4 animate-slide-up">
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-1.5">
                     <label className="text-xs font-semibold text-[#4A5568] uppercase tracking-wider">Full Name</label>
                     <input type="text" value={data.contact.name} onChange={(e) => setData({...data, contact: {...data.contact, name: e.target.value}})} className="input" placeholder="John Doe" />
@@ -190,7 +204,7 @@ export default function EditorPage() {
                     <input type="email" value={data.contact.email} onChange={(e) => setData({...data, contact: {...data.contact, email: e.target.value}})} className="input" placeholder="john@example.com" />
                   </div>
                 </div>
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-1.5">
                     <label className="text-xs font-semibold text-[#4A5568] uppercase tracking-wider">Phone</label>
                     <input type="text" value={data.contact.phone} onChange={(e) => setData({...data, contact: {...data.contact, phone: e.target.value}})} className="input" placeholder="+1 (555) 000-0000" />
@@ -217,13 +231,13 @@ export default function EditorPage() {
             )}
 
             {activeSection === 'education' && (
-              <div className="space-y-6 animate-slide-up">
+              <div className="space-y-4 sm:space-y-6 animate-slide-up">
                 {data.education.map((edu, index) => (
-                  <div key={edu.id} className="p-6 rounded-2xl border border-[#2A2A3A] bg-[#0A0A0F]/50 space-y-4 relative group hover:border-[#6366F1]/30 transition-all">
-                    <button onClick={() => setData({...data, education: data.education.filter((_, i) => i !== index)})} className="absolute top-4 right-4 p-1.5 rounded-lg text-[#4A5568] hover:text-[#EF4444] opacity-0 group-hover:opacity-100 transition-all">
+                  <div key={edu.id} className="p-4 sm:p-6 rounded-2xl border border-[#2A2A3A] bg-[#0A0A0F]/50 space-y-4 relative group hover:border-[#6366F1]/30 transition-all">
+                    <button onClick={() => setData({...data, education: data.education.filter((_, i) => i !== index)})} className="absolute top-3 right-3 sm:top-4 sm:right-4 p-1.5 rounded-lg text-[#4A5568] hover:text-[#EF4444] sm:opacity-0 sm:group-hover:opacity-100 transition-all">
                       <Trash2 className="w-4 h-4" />
                     </button>
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div className="space-y-1.5">
                         <label className="text-xs font-semibold text-[#4A5568] uppercase tracking-wider">School / University</label>
                         <input className="input" value={edu.school} onChange={(e) => { const n = [...data.education]; n[index].school = e.target.value; setData({...data, education: n}) }} placeholder="e.g. Stanford University" />
@@ -246,9 +260,9 @@ export default function EditorPage() {
             )}
 
             {activeSection === 'experience' && (
-              <div className="space-y-6 animate-slide-up">
+              <div className="space-y-4 sm:space-y-6 animate-slide-up">
                 {analysis?.missing_keywords && (
-                  <div className="p-4 rounded-xl bg-amber-500/5 border border-amber-500/20">
+                  <div className="p-3 sm:p-4 rounded-xl bg-amber-500/5 border border-amber-500/20">
                     <div className="flex items-center gap-2 mb-3">
                       <Sparkles className="w-4 h-4 text-amber-500" />
                       <span className="text-sm font-semibold text-amber-500">Missing ATS Keywords</span>
@@ -266,11 +280,11 @@ export default function EditorPage() {
                   </div>
                 )}
                 {data.experience.map((exp, index) => (
-                  <div key={exp.id} className="p-6 rounded-2xl border border-[#2A2A3A] bg-[#0A0A0F]/50 space-y-4 relative group hover:border-[#6366F1]/30 transition-all">
-                    <button onClick={() => setData({...data, experience: data.experience.filter((_, i) => i !== index)})} className="absolute top-4 right-4 p-1.5 rounded-lg text-[#4A5568] hover:text-[#EF4444] opacity-0 group-hover:opacity-100 transition-all">
+                  <div key={exp.id} className="p-4 sm:p-6 rounded-2xl border border-[#2A2A3A] bg-[#0A0A0F]/50 space-y-4 relative group hover:border-[#6366F1]/30 transition-all">
+                    <button onClick={() => setData({...data, experience: data.experience.filter((_, i) => i !== index)})} className="absolute top-3 right-3 sm:top-4 sm:right-4 p-1.5 rounded-lg text-[#4A5568] hover:text-[#EF4444] sm:opacity-0 sm:group-hover:opacity-100 transition-all">
                       <Trash2 className="w-4 h-4" />
                     </button>
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div className="space-y-1.5">
                         <label className="text-xs font-semibold text-[#4A5568] uppercase tracking-wider">Company</label>
                         <input className="input" value={exp.company} onChange={(e) => { const n = [...data.experience]; n[index].company = e.target.value; setData({...data, experience: n}) }} />
@@ -297,7 +311,7 @@ export default function EditorPage() {
             )}
 
             {activeSection === 'skills' && (
-              <div className="space-y-6 animate-slide-up">
+              <div className="space-y-4 sm:space-y-6 animate-slide-up">
                 <div className="space-y-3">
                   <label className="text-xs font-semibold text-[#4A5568] uppercase tracking-wider">Add Technical Skills</label>
                   <div className="flex gap-2">
@@ -318,7 +332,8 @@ export default function EditorPage() {
           </div>
         </div>
 
-        <div className="w-1/2 bg-[#16161E] rounded-2xl border border-[#2A2A3A] p-8 overflow-y-auto flex justify-center custom-scrollbar">
+        {/* Preview panel — hidden on mobile unless showPreview is true */}
+        <div className={`${showPreview ? 'flex' : 'hidden'} lg:flex w-full lg:w-1/2 bg-[#16161E] rounded-2xl border border-[#2A2A3A] p-4 sm:p-8 overflow-y-auto justify-center custom-scrollbar`}>
           {showTemplates ? (
             <div className="grid grid-cols-1 gap-6 w-full max-w-md">
               <h2 className="text-xl font-bold text-white mb-2">Choose a Template</h2>

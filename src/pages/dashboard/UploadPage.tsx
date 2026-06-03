@@ -114,14 +114,14 @@ export default function UploadPage() {
   return (
     <div className="max-w-2xl mx-auto space-y-6 animate-fade-in">
       <div>
-        <h1 className="text-2xl font-heading font-bold text-[#F1F5F9]">Upload Your Resume</h1>
+        <h1 className="text-xl sm:text-2xl font-heading font-bold text-[#F1F5F9]">Upload Your Resume</h1>
         <p className="text-[#94A3B8] text-sm mt-1">Get an instant AI-powered ATS score and improvement tips</p>
       </div>
 
       {/* Drop zone */}
       <div
         {...getRootProps()}
-        className={`relative border-2 border-dashed rounded-2xl p-12 text-center cursor-pointer transition-all duration-300 ${
+        className={`relative border-2 border-dashed rounded-2xl p-6 sm:p-12 text-center cursor-pointer transition-all duration-300 ${
           isDragActive
             ? 'border-[#6366F1] bg-[#6366F1]/10 animate-pulse-border'
             : file

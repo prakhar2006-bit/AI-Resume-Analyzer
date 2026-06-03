@@ -95,7 +95,7 @@ export default function DashboardPage() {
   if (loading) {
     return (
       <div className="space-y-6 animate-fade-in">
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {[...Array(4)].map((_, i) => (
             <div key={i} className="skeleton h-24 rounded-xl" />
           ))}
@@ -113,7 +113,7 @@ export default function DashboardPage() {
     <div className="space-y-6 animate-fade-in">
       {/* Greeting */}
       <div>
-        <h1 className="text-2xl font-heading font-bold text-[#F1F5F9]">
+        <h1 className="text-xl sm:text-2xl font-heading font-bold text-[#F1F5F9]">
           Good {new Date().getHours() < 12 ? 'morning' : new Date().getHours() < 18 ? 'afternoon' : 'evening'},{' '}
           <span className="gradient-text">{profile?.full_name?.split(' ')[0] || 'there'}</span> 👋
         </h1>
@@ -121,7 +121,7 @@ export default function DashboardPage() {
       </div>
 
       {/* Stats Row */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard icon={FileText} label="Resumes Uploaded" value={resumes.length} color="#6366F1" />
         <StatCard icon={TrendingUp} label="Avg ATS Score" value={avgScore || '—'} sub={avgScore ? getScoreColor(avgScore) : undefined} color="#22D3EE" />
         <StatCard icon={Bookmark} label="Jobs Saved" value={savedJobs.length} color="#10B981" />
@@ -129,7 +129,7 @@ export default function DashboardPage() {
       </div>
 
       {/* Charts + Activity */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 overflow-hidden">
         {/* Score history — spans 2 cols */}
         <div className="lg:col-span-2 card">
           <h3 className="text-sm font-semibold text-[#F1F5F9] mb-4">ATS Score History</h3>
@@ -224,7 +224,7 @@ export default function DashboardPage() {
       {/* Quick actions */}
       {resumes.length === 0 && (
         <div
-          className="rounded-2xl p-6 flex flex-col sm:flex-row items-center gap-4 border border-[#6366F1]/30"
+          className="rounded-2xl p-4 sm:p-6 flex flex-col sm:flex-row items-center gap-4 border border-[#6366F1]/30"
           style={{ background: 'linear-gradient(135deg, rgba(99,102,241,0.1), rgba(34,211,238,0.05))' }}
         >
           <div className="flex-1 text-center sm:text-left">

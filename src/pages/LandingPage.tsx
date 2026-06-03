@@ -32,21 +32,21 @@ export default function LandingPage() {
   return (
     <div style={{ background: '#0A0A0F', color: '#F1F5F9', minHeight: '100vh' }}>
       {/* Navbar */}
-      <nav className="flex items-center justify-between px-6 py-4 border-b border-[#2A2A3A] sticky top-0 z-50" style={{ background: 'rgba(10,10,15,0.95)', backdropFilter: 'blur(12px)' }}>
+      <nav className="flex items-center justify-between px-4 sm:px-6 py-4 border-b border-[#2A2A3A] sticky top-0 z-50" style={{ background: 'rgba(10,10,15,0.95)', backdropFilter: 'blur(12px)' }}>
         <div className="flex items-center gap-2.5">
           <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#6366F1] to-[#22D3EE] flex items-center justify-center">
             <Zap className="w-4 h-4 text-white" />
           </div>
           <span className="font-heading font-bold text-lg gradient-text">ResumeIQ</span>
         </div>
-        <div className="flex items-center gap-3">
-          <Link to="/login" className="btn btn-ghost text-sm">Sign In</Link>
-          <Link to="/signup" className="btn btn-primary text-sm">Get Started Free</Link>
+        <div className="flex items-center gap-2 sm:gap-3">
+          <Link to="/login" className="btn btn-ghost text-sm hidden sm:inline-flex">Sign In</Link>
+          <Link to="/signup" className="btn btn-primary text-xs sm:text-sm">Get Started</Link>
         </div>
       </nav>
 
       {/* Hero */}
-      <section className="relative overflow-hidden px-6 py-24 text-center">
+      <section className="relative overflow-hidden px-4 sm:px-6 py-16 sm:py-24 text-center">
         <div className="absolute inset-0 pointer-events-none">
           <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[400px] bg-[#6366F1]/12 rounded-full blur-[100px]" />
           <div className="absolute top-32 right-1/4 w-[300px] h-[300px] bg-[#22D3EE]/8 rounded-full blur-[80px]" />
@@ -111,14 +111,14 @@ export default function LandingPage() {
 
       {/* Stats bar */}
       <section className="py-10 border-y border-[#2A2A3A]" style={{ background: '#111118' }}>
-        <div className="max-w-4xl mx-auto px-6 flex items-center justify-center gap-10 flex-wrap">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 flex items-center justify-center gap-6 sm:gap-10 flex-wrap">
           {[
             { val: '10,000+', label: 'Resumes Analyzed' },
             { val: '94%', label: 'ATS Improvement Rate' },
             { val: '500+', label: 'Job Roles Matched' },
           ].map(({ val, label }) => (
             <div key={label} className="text-center">
-              <p className="text-3xl font-heading font-bold gradient-text">{val}</p>
+              <p className="text-2xl sm:text-3xl font-heading font-bold gradient-text">{val}</p>
               <p className="text-sm text-[#94A3B8] mt-1">{label}</p>
             </div>
           ))}
@@ -126,9 +126,9 @@ export default function LandingPage() {
       </section>
 
       {/* Features */}
-      <section className="py-24 px-6 max-w-6xl mx-auto">
+      <section className="py-16 sm:py-24 px-4 sm:px-6 max-w-6xl mx-auto">
         <div className="text-center mb-14">
-          <h2 className="text-3xl font-heading font-bold text-[#F1F5F9]">Everything you need to get hired</h2>
+          <h2 className="text-2xl sm:text-3xl font-heading font-bold text-[#F1F5F9]">Everything you need to get hired</h2>
           <p className="text-[#94A3B8] mt-3">A complete toolkit for the modern job seeker</p>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -145,9 +145,9 @@ export default function LandingPage() {
       </section>
 
       {/* How it works */}
-      <section className="py-24 px-6" style={{ background: '#111118' }}>
+      <section className="py-16 sm:py-24 px-4 sm:px-6" style={{ background: '#111118' }}>
         <div className="max-w-4xl mx-auto text-center">
-          <h2 className="text-3xl font-heading font-bold text-[#F1F5F9] mb-14">How ResumeIQ works</h2>
+          <h2 className="text-2xl sm:text-3xl font-heading font-bold text-[#F1F5F9] mb-10 sm:mb-14">How ResumeIQ works</h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {steps.map(({ n, title, desc }) => (
               <div key={n} className="relative">
@@ -161,9 +161,9 @@ export default function LandingPage() {
       </section>
 
       {/* Testimonials */}
-      <section className="py-24 px-6 max-w-6xl mx-auto">
+      <section className="py-16 sm:py-24 px-4 sm:px-6 max-w-6xl mx-auto">
         <div className="text-center mb-14">
-          <h2 className="text-3xl font-heading font-bold text-[#F1F5F9]">Loved by job seekers</h2>
+          <h2 className="text-2xl sm:text-3xl font-heading font-bold text-[#F1F5F9]">Loved by job seekers</h2>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {testimonials.map(({ name, role, text, rating }) => (
@@ -184,9 +184,9 @@ export default function LandingPage() {
       </section>
 
       {/* CTA */}
-      <section className="py-24 px-6 text-center">
+      <section className="py-16 sm:py-24 px-4 sm:px-6 text-center">
         <div className="max-w-2xl mx-auto">
-          <h2 className="text-3xl font-heading font-bold text-[#F1F5F9] mb-3">Ready to get hired?</h2>
+          <h2 className="text-2xl sm:text-3xl font-heading font-bold text-[#F1F5F9] mb-3">Ready to get hired?</h2>
           <p className="text-[#94A3B8] mb-8">Join thousands of job seekers who improved their resume with ResumeIQ. No credit card, no trials — just a better resume.</p>
           <Link to="/signup" className="btn btn-primary" style={{ padding: '0.875rem 2rem', fontSize: '1rem' }}>
             Get Started Now <ArrowRight style={{ width: 16, height: 16 }} />
@@ -195,7 +195,7 @@ export default function LandingPage() {
       </section>
 
       {/* Footer */}
-      <footer className="border-t border-[#2A2A3A] py-10 px-6" style={{ background: '#111118' }}>
+      <footer className="border-t border-[#2A2A3A] py-8 sm:py-10 px-4 sm:px-6" style={{ background: '#111118' }}>
         <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-2">
             <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-[#6366F1] to-[#22D3EE] flex items-center justify-center">

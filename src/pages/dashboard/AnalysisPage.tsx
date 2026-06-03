@@ -79,22 +79,22 @@ export default function AnalysisPage() {
   return (
     <div className="space-y-6 animate-fade-in">
       {/* Header */}
-      <div className="flex items-center gap-3 flex-wrap">
+      <div className="flex flex-col sm:flex-row sm:items-center gap-3 flex-wrap">
         <button onClick={() => navigate(-1)} className="text-[#94A3B8] hover:text-[#F1F5F9] transition-colors">
           <ArrowLeft style={{ width: 18, height: 18 }} />
         </button>
         <div className="flex-1">
           <div className="flex items-center gap-2 flex-wrap">
-            <h1 className="text-xl font-heading font-bold text-[#F1F5F9]">
+            <h1 className="text-lg sm:text-xl font-heading font-bold text-[#F1F5F9]">
               {resume?.file_name || 'Resume Analysis'}
             </h1>
             <span className={cn('badge', getVerdictBadgeClass(analysis.overall_verdict || 'Good'))}>
               {analysis.overall_verdict}
             </span>
           </div>
-          <p className="text-xs text-[#4A5568] mt-0.5">Analyzed {formatDate(analysis.analyzed_at)} · {analysis.word_count} words · ~{analysis.estimated_years_experience} years experience</p>
+          <p className="text-xs text-[#4A5568] mt-0.5 break-words">Analyzed {formatDate(analysis.analyzed_at)} · {analysis.word_count} words · ~{analysis.estimated_years_experience} years experience</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap">
           <span className="badge badge-indigo">{analysis.experience_level}</span>
           <Link to="/dashboard/upload" className="btn btn-secondary text-xs">
             <FileText style={{ width: 13, height: 13 }} /> New Analysis
@@ -117,7 +117,7 @@ export default function AnalysisPage() {
       {/* Strengths */}
       {analysis.strengths?.length > 0 && (
         <Section title="✅ Strengths">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
             {analysis.strengths.map((s, i) => (
               <div key={i} className="flex items-start gap-3 card" style={{ padding: '0.875rem' }}>
                 <CheckCircle2 style={{ width: 16, height: 16, color: '#10B981', marginTop: 2, flexShrink: 0 }} />
@@ -163,7 +163,7 @@ export default function AnalysisPage() {
       {/* Recommended Roles */}
       {analysis.recommended_roles?.length > 0 && (
         <Section title="💼 Recommended Roles">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
             {analysis.recommended_roles.map((role, i) => (
               <div key={i} className="card" style={{ padding: '1rem' }}>
                 <div className="flex items-start justify-between gap-2 mb-2">

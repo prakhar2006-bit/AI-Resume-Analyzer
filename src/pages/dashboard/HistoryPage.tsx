@@ -58,7 +58,7 @@ export default function HistoryPage() {
   return (
     <div className="space-y-6 animate-fade-in">
       <div>
-        <h1 className="text-2xl font-heading font-bold text-[#F1F5F9]">Resume History</h1>
+        <h1 className="text-xl sm:text-2xl font-heading font-bold text-[#F1F5F9]">Resume History</h1>
         <p className="text-[#94A3B8] text-sm mt-1">{resumes.length} resume{resumes.length !== 1 ? 's' : ''} uploaded</p>
       </div>
 
@@ -73,7 +73,7 @@ export default function HistoryPage() {
           {resumes.map((resume) => {
             const analysis = analyses[resume.id]
             return (
-              <div key={resume.id} className="card flex items-center gap-4">
+              <div key={resume.id} className="card flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
                 <div className="w-10 h-10 rounded-xl bg-[#EF4444]/10 border border-[#EF4444]/20 flex items-center justify-center flex-shrink-0">
                   <FileText style={{ width: 18, height: 18, color: '#EF4444' }} />
                 </div>
@@ -81,7 +81,7 @@ export default function HistoryPage() {
                   <p className="text-sm font-semibold text-[#F1F5F9] truncate">{resume.file_name}</p>
                   <p className="text-xs text-[#4A5568]">Uploaded {formatDate(resume.uploaded_at)}</p>
                 </div>
-                <div className="flex items-center gap-3 flex-shrink-0">
+                <div className="flex items-center gap-3 flex-shrink-0 flex-wrap">
                   {analysis ? (
                     <div className="flex items-center gap-1.5">
                       <TrendingUp style={{ width: 13, height: 13, color: getScoreColor(analysis.ats_score) }} />
