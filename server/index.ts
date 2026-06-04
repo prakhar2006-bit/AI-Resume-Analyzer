@@ -1,7 +1,7 @@
 import express from 'express'
 import cors from 'cors'
 import multer from 'multer'
-import Anthropic from '@anthropic-ai/sdk'
+import Groq from 'groq-sdk'
 import dotenv from 'dotenv'
 import { createClient } from '@supabase/supabase-js'
 import { createRequire } from 'module'
@@ -26,7 +26,7 @@ const upload = multer({
   },
 })
 
-const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY || '' })
+const groq = new Groq({ apiKey: process.env.GROQ_API_KEY || '' })
 
 const supabase = createClient(
   process.env.VITE_SUPABASE_URL || '',
@@ -73,9 +73,9 @@ function getMockAnalysis() {
   }
 }
 
-async function analyzeWithClaude(resumeText: string, jobDescription?: string): Promise<Record<string, unknown>> {
-  const apiKey = process.env.ANTHROPIC_API_KEY
-  if (!apiKey || apiKey === 'your_anthropic_api_key' || apiKey === 'mock') {
+async function analyzeWithGroq(resumeText: string, jobDescription?: string): Promise<Record<string, unknown>> {
+  const apiKey = process.env.GROQ_API_KEY
+  if (!apiKey || apiKey === 'your_groq_api_key' || apiKey === 'mock') {
     console.log('🧪 MOCK MODE')
     await new Promise(r => setTimeout(r, 2000))
     return getMockAnalysis()
@@ -103,15 +103,13 @@ RESUME TEXT:
 ${resumeText}
 ${jobDescription ? `\nTARGET JOB DESCRIPTION:\n${jobDescription}` : ''}`
 
-  const message = await anthropic.messages.create({
-    model: 'claude-3-5-sonnet-20241022',
-    max_tokens: 4096,
+  const response = await groq.chat.completions.create({
+    model: 'llama-3.3-70b-versatile',
     messages: [{ role: 'user', content: prompt }],
+    response_format: { type: 'json_object' },
   })
 
-  const content = message.content[0]
-  if (content.type !== 'text') throw new Error('Unexpected response from Claude')
-  const text = content.text.trim()
+  const text = response.choices[0]?.message?.content || ''
   const jsonMatch = text.match(/\{[\s\S]*\}/)
   if (!jsonMatch) throw new Error('Could not parse AI response as JSON')
   return JSON.parse(jsonMatch[0]) as Record<string, unknown>
@@ -123,7 +121,7 @@ app.post('/api/analyze-resume', upload.single('pdf'), async (req, res) => {
     if (!req.file) { res.status(400).json({ error: 'No PDF file uploaded' }); return }
     if (!resume_id || !user_id) { res.status(400).json({ error: 'Missing resume_id or user_id' }); return }
 
-    const isMock = !process.env.ANTHROPIC_API_KEY || process.env.ANTHROPIC_API_KEY === 'your_anthropic_api_key' || process.env.ANTHROPIC_API_KEY === 'mock'
+    const isMock = !process.env.GROQ_API_KEY || process.env.GROQ_API_KEY === 'your_groq_api_key' || process.env.GROQ_API_KEY === 'mock'
     let resumeText = ''
     try { resumeText = await extractPdfText(req.file.buffer) } catch (err) { if (!isMock) throw err }
 
@@ -132,7 +130,7 @@ app.post('/api/analyze-resume', upload.single('pdf'), async (req, res) => {
     }
     if (isMock && (!resumeText || resumeText.length < 50)) resumeText = '[MOCK RESUME TEXT]'
 
-    const analysis = await analyzeWithClaude(resumeText, job_description)
+    const analysis = await analyzeWithGroq(resumeText, job_description)
 
     const { data: analysisRow, error: dbErr } = await supabase
       .from('analysis_results')
@@ -169,17 +167,26 @@ app.post('/api/editor/tips', async (req, res) => {
     const { section, content } = req.body as { section: string; content: string }
     if (!content || content.length < 10) return res.json({ tips: [] })
 
-    const apiKey = process.env.ANTHROPIC_API_KEY
-    if (!apiKey || apiKey === 'mock' || apiKey === 'your_anthropic_api_key') {
+    const apiKey = process.env.GROQ_API_KEY
+    if (!apiKey || apiKey === 'mock' || apiKey === 'your_groq_api_key') {
       await new Promise(r => setTimeout(r, 800))
       return res.json({ tips: ['Use more action verbs like "Spearheaded".', 'Quantify achievements with numbers.'] })
     }
 
-    const prompt = `You are a professional resume reviewer. Provide 2-3 short, actionable tips to improve the following "${section}" section of a resume for ATS optimization.\n\nCONTENT:\n${content}\n\nReturn ONLY a JSON array of strings: ["tip1", "tip2"]`
-    const message = await anthropic.messages.create({ model: 'claude-3-5-sonnet-20241022', max_tokens: 500, messages: [{ role: 'user', content: prompt }] })
-    const text = ((message.content[0] as any).text as string).trim()
-    const jsonMatch = text.match(/\[[\s\S]*\]/)
-    return res.json({ tips: jsonMatch ? JSON.parse(jsonMatch[0]) : [] })
+    const prompt = `You are a professional resume reviewer. Provide 2-3 short, actionable tips to improve the following "${section}" section of a resume for ATS optimization.\n\nCONTENT:\n${content}\n\nReturn a JSON object with a single "tips" key containing an array of strings: { "tips": ["tip1", "tip2"] }`
+    const response = await groq.chat.completions.create({
+      model: 'llama-3.3-70b-versatile',
+      messages: [{ role: 'user', content: prompt }],
+      response_format: { type: 'json_object' },
+    })
+    const text = (response.choices[0]?.message?.content || '').trim()
+    try {
+      const parsed = JSON.parse(text)
+      return res.json({ tips: parsed.tips || [] })
+    } catch {
+      const jsonMatch = text.match(/\[[\s\S]*\]/)
+      return res.json({ tips: jsonMatch ? JSON.parse(jsonMatch[0]) : [] })
+    }
   } catch (err) {
     console.error('Tips error:', err)
     return res.status(500).json({ error: 'Failed to fetch tips' })
@@ -189,7 +196,7 @@ app.post('/api/editor/tips', async (req, res) => {
 app.get('/api/health', (_req, res) => {
   res.json({
     status: 'ok',
-    anthropicConfigured: !!process.env.ANTHROPIC_API_KEY && process.env.ANTHROPIC_API_KEY !== 'your_anthropic_api_key',
+    groqConfigured: !!process.env.GROQ_API_KEY && process.env.GROQ_API_KEY !== 'your_groq_api_key',
     supabaseConfigured: !!process.env.VITE_SUPABASE_URL,
     serviceRoleConfigured: !!process.env.SUPABASE_SERVICE_ROLE_KEY,
   })
@@ -198,7 +205,7 @@ app.get('/api/health', (_req, res) => {
 const PORT = process.env.PORT || 3001
 app.listen(PORT, () => {
   console.log(`\n🚀 ResumeIQ API Server running on http://localhost:${PORT}`)
-  console.log(`   Anthropic API: ${process.env.ANTHROPIC_API_KEY ? '✅ Configured' : '❌ Missing'}`)
+  console.log(`   Groq API:      ${process.env.GROQ_API_KEY ? '✅ Configured' : '❌ Missing'}`)
   console.log(`   Supabase:      ${process.env.VITE_SUPABASE_URL ? '✅ Configured' : '❌ Missing'}`)
   console.log(`   Service Role:  ${process.env.SUPABASE_SERVICE_ROLE_KEY ? '✅ Configured' : '⚠️  Missing'}\n`)
 })

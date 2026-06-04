@@ -1,11 +1,11 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import multiparty from 'multiparty'
 import { createClient } from '@supabase/supabase-js'
-import Anthropic from '@anthropic-ai/sdk'
+import Groq from 'groq-sdk'
 import fs from 'fs'
 
 // ─── Clients ─────────────────────────────────────────────────────────────────
-const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY || '' })
+const groq = new Groq({ apiKey: process.env.GROQ_API_KEY || '' })
 
 const supabase = createClient(
   process.env.VITE_SUPABASE_URL || '',
@@ -21,7 +21,7 @@ function parseForm(req: VercelRequest): Promise<{ fields: Record<string, string[
       const uploaded = files?.pdf?.[0]
       if (!uploaded) return reject(new Error('No PDF file uploaded'))
       resolve({
-        fields,
+        fields: fields as Record<string, string[]>,
         filePath: uploaded.path,
         mimeType: uploaded.headers['content-type'] || 'application/pdf',
       })
@@ -33,7 +33,8 @@ function parseForm(req: VercelRequest): Promise<{ fields: Record<string, string[
 async function extractPdfText(filePath: string): Promise<string> {
   try {
     // Dynamically require pdf-parse (CJS module)
-    const pdfParse = (await import('pdf-parse')).default || (await import('pdf-parse'))
+    const pdfParseModule = (await import('pdf-parse')) as any
+    const pdfParse = pdfParseModule.default || pdfParseModule
     const buffer = fs.readFileSync(filePath)
     const result = await (pdfParse as any)(buffer)
     return result.text
@@ -83,9 +84,9 @@ function getMockAnalysis() {
 }
 
 // ─── Claude AI analysis ───────────────────────────────────────────────────────
-async function analyzeWithClaude(resumeText: string, jobDescription?: string): Promise<Record<string, unknown>> {
-  const apiKey = process.env.ANTHROPIC_API_KEY
-  if (!apiKey || apiKey === 'your_anthropic_api_key' || apiKey === 'mock') {
+async function analyzeWithGroq(resumeText: string, jobDescription?: string): Promise<Record<string, unknown>> {
+  const apiKey = process.env.GROQ_API_KEY
+  if (!apiKey || apiKey === 'your_groq_api_key' || apiKey === 'mock') {
     console.log('🧪 Running in MOCK MODE')
     await new Promise((r) => setTimeout(r, 1000))
     return getMockAnalysis()
@@ -131,16 +132,13 @@ Return ONLY valid JSON (no markdown, no explanation) with this exact structure:
   "estimated_years_experience": <number>
 }`
 
-  const message = await anthropic.messages.create({
-    model: 'claude-3-5-sonnet-20241022',
-    max_tokens: 4096,
+  const response = await groq.chat.completions.create({
+    model: 'llama-3.3-70b-versatile',
     messages: [{ role: 'user', content: prompt }],
+    response_format: { type: 'json_object' },
   })
 
-  const content = message.content[0]
-  if (content.type !== 'text') throw new Error('Unexpected response from Claude')
-
-  const text = content.text.trim()
+  const text = response.choices[0]?.message?.content || ''
   const jsonMatch = text.match(/\{[\s\S]*\}/)
   if (!jsonMatch) throw new Error('Could not parse AI response as JSON')
 
@@ -164,7 +162,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method === 'GET' && url.includes('/api/health')) {
     return res.json({
       status: 'ok',
-      anthropicConfigured: !!process.env.ANTHROPIC_API_KEY && process.env.ANTHROPIC_API_KEY !== 'your_anthropic_api_key',
+      groqConfigured: !!process.env.GROQ_API_KEY && process.env.GROQ_API_KEY !== 'your_groq_api_key',
       supabaseConfigured: !!process.env.VITE_SUPABASE_URL,
       serviceRoleConfigured: !!process.env.SUPABASE_SERVICE_ROLE_KEY,
     })
@@ -176,8 +174,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const { section, content } = req.body as { section: string; content: string }
       if (!content || content.length < 10) return res.json({ tips: [] })
 
-      const apiKey = process.env.ANTHROPIC_API_KEY
-      if (!apiKey || apiKey === 'mock' || apiKey === 'your_anthropic_api_key') {
+      const apiKey = process.env.GROQ_API_KEY
+      if (!apiKey || apiKey === 'mock' || apiKey === 'your_groq_api_key') {
         await new Promise((r) => setTimeout(r, 800))
         return res.json({
           tips: [
@@ -192,18 +190,23 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 CONTENT:
 ${content}
 
-Return ONLY a JSON array of strings: ["tip1", "tip2"]`
+Return a JSON object with a single "tips" key containing an array of strings: { "tips": ["tip1", "tip2"] }`
 
-      const message = await anthropic.messages.create({
-        model: 'claude-3-5-sonnet-20241022',
-        max_tokens: 500,
+      const response = await groq.chat.completions.create({
+        model: 'llama-3.3-70b-versatile',
         messages: [{ role: 'user', content: prompt }],
+        response_format: { type: 'json_object' },
       })
 
-      const text = ((message.content[0] as any).text as string).trim()
-      const jsonMatch = text.match(/\[[\s\S]*\]/)
-      const tips = jsonMatch ? JSON.parse(jsonMatch[0]) : []
-      return res.json({ tips })
+      const text = (response.choices[0]?.message?.content || '').trim()
+      try {
+        const parsed = JSON.parse(text)
+        return res.json({ tips: parsed.tips || [] })
+      } catch {
+        const jsonMatch = text.match(/\[[\s\S]*\]/)
+        const tips = jsonMatch ? JSON.parse(jsonMatch[0]) : []
+        return res.json({ tips })
+      }
     } catch (err) {
       console.error('Tips error:', err)
       return res.status(500).json({ error: 'Failed to fetch tips' })
@@ -233,9 +236,9 @@ Return ONLY a JSON array of strings: ["tip1", "tip2"]`
       // 1. Extract text
       let resumeText = ''
       const isMock =
-        !process.env.ANTHROPIC_API_KEY ||
-        process.env.ANTHROPIC_API_KEY === 'your_anthropic_api_key' ||
-        process.env.ANTHROPIC_API_KEY === 'mock'
+        !process.env.GROQ_API_KEY ||
+        process.env.GROQ_API_KEY === 'your_groq_api_key' ||
+        process.env.GROQ_API_KEY === 'mock'
 
       try {
         resumeText = await extractPdfText(filePath)
@@ -253,7 +256,7 @@ Return ONLY a JSON array of strings: ["tip1", "tip2"]`
       }
 
       // 2. Analyze with Claude
-      const analysis = await analyzeWithClaude(resumeText, job_description)
+      const analysis = await analyzeWithGroq(resumeText, job_description)
 
       // 3. Save to DB
       const { data: analysisRow, error: dbErr } = await supabase
